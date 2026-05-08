@@ -2,45 +2,31 @@ const weatherTool = require('../tools/weatherTool');
 const searchTool = require('../tools/searchTool');
 const { addToMemory, getMemory } = require('./memory');
 
-function fakeLLM(userInput, history) {
-  const input = userInput.toLowerCase();
+function fakeLLM(state) {
+  const goal = state.goal.toLowerCase();
 
-  const previousConversation = history.map((item) => item.content).join(' ');
-  console.log('Memory Context: ', previousConversation);
+  // STEP 1
+  if (state.steps.length === 0) {
+    if (goal.includes('react')) {
+      return {
+        action: 'SEARCH',
+        query: 'React benefits',
+      };
+    }
+  }
 
-  // Weather
-  if (input.includes('weather')) {
+  // STEP 2
+  if (state.steps.includes('SEARCH_DONE')) {
     return {
-      action: 'USE_WEATHER_TOOL',
+      action: 'SUMMARIZE',
     };
   }
 
-  // React related
-  if (input.includes('react') || input.includes('server components')) {
-    return {
-      action: 'USE_SEARCH_TOOL',
-      query: userInput,
-    };
-  }
-
-  // Show Memory
-  if (input.includes('show memory')) {
-    return {
-      action: 'USE_MEMORY_TOOL',
-    };
-  }
-
-  //  Context follow-up detection
-  if (input.includes('benefits') && previousConversation.includes('React')) {
-    return {
-      action: 'USE_SEARCH_TOOL',
-      query: 'Benefits of react',
-    };
-  }
-
+  // FINAL
   return {
-    action: 'DIRECT_RESPONSE',
-    response: 'I can answer directly.',
+    action: 'FINNISH',
+    answer:
+      'React helps build reusable UI and improves development efficiency.',
   };
 }
 
