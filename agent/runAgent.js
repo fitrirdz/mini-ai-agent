@@ -1,4 +1,5 @@
 const searchTool = require('../tools/searchTool');
+const weatherTool = require('../tools/weatherTool');
 const createAgentState = require('./agentState');
 const calculatorTool = require('../tools/calculatorTool');
 
@@ -22,7 +23,7 @@ function fakeLLM(state) {
 
   // CALCULATOR
   if (
-    goal.includes('calculator') &&
+    goal.includes('calculate') &&
     !state.steps.includes('CALCULATION_DONE')
   ) {
     return {
@@ -78,6 +79,29 @@ function runAgent(userInput) {
       console.log('📝 Summarizing observations');
 
       state.steps.push('SUMMARY_DONE');
+
+      continue;
+    }
+
+    // CALCULATOR
+    if (decision.action === 'CALCULATE') {
+      const result = calculatorTool(decision.expression);
+
+      state.observations.push(result);
+      state.steps.push('CALCULATION_DONE');
+
+      console.log('🧮 Calculation saved');
+
+      continue;
+    }
+
+    // WEATHER
+    if (decision.action === 'WEATHER') {
+      const result = weatherTool();
+      state.observations.push(result);
+      state.steps.push('WEATHER_DONE');
+
+      console.log('🌦️ Weather saved');
 
       continue;
     }
