@@ -1,20 +1,37 @@
 const searchTool = require('../tools/searchTool');
 const createAgentState = require('./agentState');
+const calculatorTool = require('../tools/calculatorTool');
 
 function fakeLLM(state) {
   const goal = state.goal.toLowerCase();
 
-  // STEP 1
-  if (state.steps.length === 0) {
-    if (goal.includes('react')) {
-      return {
-        action: 'SEARCH',
-        query: 'React benefits',
-      };
-    }
+  // SEARCH
+  if (goal.includes('react') && !state.steps.includes('SEARCH_DONE')) {
+    return {
+      action: 'SEARCH',
+      query: 'React benefits',
+    };
   }
 
-  // STEP 2
+  // WEATHER
+  if (goal.includes('weather') && !state.steps.includes('WEATHER_DONE')) {
+    return {
+      action: 'WEATHER',
+    };
+  }
+
+  // CALCULATOR
+  if (
+    goal.includes('calculator') &&
+    !state.steps.includes('CALCULATION_DONE')
+  ) {
+    return {
+      action: 'CALCULATE',
+      expression: '5 + 5',
+    };
+  }
+
+  // SUMMARIZE SEARCH RESULT
   if (
     state.steps.includes('SEARCH_DONE') &&
     !state.steps.includes('SUMMARY_DONE')
@@ -27,8 +44,7 @@ function fakeLLM(state) {
   // FINAL
   return {
     action: 'FINISH',
-    answer:
-      'React helps build reusable UI and improves development efficiency.',
+    answer: 'Task completed successfully',
   };
 }
 
