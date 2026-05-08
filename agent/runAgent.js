@@ -1,6 +1,5 @@
-const weatherTool = require('../tools/weatherTool');
 const searchTool = require('../tools/searchTool');
-const { addToMemory, getMemory } = require('./memory');
+const createAgentState = require('./agentState');
 
 function fakeLLM(state) {
   const goal = state.goal.toLowerCase();
@@ -16,7 +15,10 @@ function fakeLLM(state) {
   }
 
   // STEP 2
-  if (state.steps.includes('SEARCH_DONE')) {
+  if (
+    state.steps.includes('SEARCH_DONE') &&
+    !state.steps.includes('SUMMARY_DONE')
+  ) {
     return {
       action: 'SUMMARIZE',
     };
@@ -24,59 +26,58 @@ function fakeLLM(state) {
 
   // FINAL
   return {
-    action: 'FINNISH',
+    action: 'FINISH',
     answer:
       'React helps build reusable UI and improves development efficiency.',
   };
 }
 
 function runAgent(userInput) {
-  console.log('\n===================');
-  console.log('USER: ', userInput);
+  const state = createAgentState(userInput);
 
-  // get previous context
-  const history = getMemory();
+  console.log('\n🤖 Agent Started');
+  console.log('🎯 Goal: ', state.goal);
 
-  // set current context
-  addToMemory('user', userInput);
+  while (!state.finished) {
+    console.log('\n🧠 Thinking . . .');
 
-  // STEP 1 -> Think
-  const decision = fakeLLM(userInput, history);
+    const decision = fakeLLM(state);
 
-  console.log('Agent decision: ', decision);
+    console.log('👉 Decision: ', decision);
 
-  // STEP 2 -> Act
-  if (decision.action === 'USE_WEATHER_TOOL') {
-    const result = weatherTool();
+    // SEARCH
+    if (decision.action === 'SEARCH') {
+      const result = searchTool(decision.query);
 
-    // set new context
-    addToMemory('assistant', result);
-    return {
-      response: result,
-    };
+      state.observations.push(result);
+      state.steps.push('SEARCH_DONE');
+
+      console.log('🔍 Observation saved');
+
+      continue;
+    }
+
+    // SUMMARIZE
+    if (decision.action === 'SUMMARIZE') {
+      console.log('📝 Summarizing observations');
+
+      state.steps.push('SUMMARY_DONE');
+
+      continue;
+    }
+
+    // FINISH
+    if (decision.action === 'FINISH') {
+      state.finished = true;
+      state.finalAnswer = decision.answer;
+    }
   }
 
-  if (decision.action === 'USE_SEARCH_TOOL') {
-    const result = searchTool(decision.query);
+  console.log('\n✅ Agent Finished');
 
-    // set new context
-    addToMemory('assistant', result);
-    return {
-      response: result,
-    };
-  }
-
-  if (decision.action === 'USE_MEMORY_TOOL') {
-    const result = getMemory();
-
-    return result;
-  }
-
-  // set new context
-  addToMemory('assistant', decision.response);
-  // STEP 3 -> Respond
   return {
-    response: decision.response,
+    response: state.finalAnswer,
+    state,
   };
 }
 
